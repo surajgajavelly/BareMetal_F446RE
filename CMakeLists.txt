@@ -40,6 +40,6 @@ if(NOT CMAKE_CROSSCOMPILING AND BUILD_TESTS)
 endif()
 
 # Only build demo firmware if we ARE cross-compiling
-if(CMAKE_CROSSCOMPILING)
-    add_subdirectory(demo)
-endif()
+# if(CMAKE_CROSSCOMPILING)
+#     add_subdirectory(demo)
+# endif()
