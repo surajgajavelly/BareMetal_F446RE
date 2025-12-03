@@ -1,0 +1,20 @@
+# Build Directories
+build/
+build_host/
+build_target/
+
+# IDE files
+.vscode/
+.idea/
+
+# Compiled Binaries
+*.bin
+*.elf
+*.hex
+*.o
+*.obj
+*.map
+
+# Documentation
+docs/html
+docs/latex
