@@ -2,6 +2,7 @@
 set(SOURCES
     main.c
     startup_stm32.c
+    rcc.c
 )
 
 # Create the Firmware Executable
