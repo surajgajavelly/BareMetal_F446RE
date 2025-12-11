@@ -3,6 +3,7 @@ set(SOURCES
     main.c
     startup_stm32.c
     rcc.c
+    my_allocator.c
 )
 
 # Create the Firmware Executable

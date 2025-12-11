@@ -13,6 +13,8 @@ MEMORY
 {
     FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 512K
     RAM (xrw)       : ORIGIN = 0x20000000, LENGTH = 128K
+    /* NEW: CCM RAM region (64KB at 0x10000000) */
+    CCMRAM (xrw)    : ORIGIN = 0x10000000, LENGTH = 64K
 }
 
 /* Define output sections */
@@ -80,6 +82,19 @@ SECTIONS
     _ebss = .;         /* define a global symbol at bss end */
     __bss_end__ = _ebss;
   } >RAM
+
+  /* --- 2. NEW: Custom Heap Section --- */
+  /* This captures the __attribute__((section(".my_heap"))) tag */
+  /* NOLOAD means startup code won't zero it out (saves boot time) */
+  .my_heap (NOLOAD) :
+  {
+    . = ALIGN(8);
+    _sheap = .;
+    *(.my_heap)        
+    *(.my_heap*)
+    . = ALIGN(8);
+    _eheap = .;
+  } >CCMRAM            /* <--- FORCE INTO CCM RAM */
 
   /* User_heap_stack section, used to check that there is enough RAM left */
   ._user_heap_stack :
