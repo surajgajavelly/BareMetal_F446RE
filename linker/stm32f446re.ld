@@ -94,7 +94,7 @@ SECTIONS
     *(.my_heap*)
     . = ALIGN(8);
     _eheap = .;
-  } >CCMRAM            /* <--- FORCE INTO CCM RAM */
+  } >CCMRAM            /* <--- FORCE INTO CCM RAM */ 
 
   /* User_heap_stack section, used to check that there is enough RAM left */
   ._user_heap_stack :

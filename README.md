@@ -78,7 +78,7 @@ This is the easiest and most reliable way to build, as it matches the CI environ
 | Driver | Status | Description |
 | :--- | :--- | :--- |
 | RCC | ✅ Done | System Clock (PLL) config to 180 MHz. |
-| GPIO | 🚧 Planned | Input/Output control. |
+| GPIO | ✅ Done | Input/Output control. |
 | UART | 🚧 Planned | Serial Console & CLI. |
 | SysTick| 🚧 Planned | Millisecond delays. |
 
