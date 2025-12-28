@@ -22,6 +22,8 @@ RUN apt-get update && apt-get install -y \
     gcc-arm-none-eabi \
     libnewlib-arm-none-eabi \
     libstdc++-arm-none-eabi-newlib \
+    openocd \
+    usbutils \
     && rm -rf /var/lib/apt/lists/*
 
 # Set Working Directory

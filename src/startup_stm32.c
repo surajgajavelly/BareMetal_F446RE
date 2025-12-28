@@ -16,12 +16,14 @@ extern uint32_t _sidata;
 
 extern void main(void);
 
+/* --- FIX 1: Add External Declaration for SysTick --- */
+extern void SysTick_Handler(void);
+
 /* Function Prototypes -------------------------------------------------------*/
 void Reset_Handler(void);
 void Default_Handler(void);
 
 /* Vector Table --------------------------------------------------------------*/
-/* Attribute put this array in the .isr_vector section defined in linker script */
 uint32_t vectors[] __attribute__((section(".isr_vector"))) = {
     STACK_START,                   /* 0x0000 0000 : Initial Stack Pointer */
     (uint32_t)Reset_Handler,       /* 0x0000 0004 : Reset Handler */
@@ -38,7 +40,10 @@ uint32_t vectors[] __attribute__((section(".isr_vector"))) = {
     (uint32_t)Default_Handler,     /* 0x0000 0030 : Debug Monitor Handler */
     0,                             /* 0x0000 0034 : Reserved */
     (uint32_t)Default_Handler,     /* 0x0000 0038 : PendSV Handler */
-    (uint32_t)Default_Handler,     /* 0x0000 003C : SysTick Handler */
+    
+    /* --- FIX 2: Point to the Real Handler --- */
+    (uint32_t)SysTick_Handler,     /* 0x0000 003C : SysTick Handler */
+    
     /* Add peripheral interrupts here (UART, DMA, etc.) later */
 };
 

@@ -5,6 +5,7 @@ set(SOURCES
     rcc.c
     gpio.c
     my_allocator.c
+    systick.c
 )
 
 # --- Create Executable ---
@@ -21,7 +22,7 @@ target_link_options(firmware.elf PRIVATE
     -T${CMAKE_SOURCE_DIR}/linker/stm32f446re.ld
     -Wl,-Map=${CMAKE_BINARY_DIR}/firmware.map
     -Wl,--gc-sections
-    --specs=nosys.specs 
+    ##--specs=nosys.specs 
 )
 
 # --- Post-Build: Generate Binary ---
