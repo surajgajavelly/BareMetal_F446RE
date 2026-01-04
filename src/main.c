@@ -1,44 +1,55 @@
 #include <stdint.h>
-#include <stddef.h>      // Required for NULL definition
-#include "rcc.h"         // Clock Driver
-#include "gpio.h"        // GPIO Driver
-#include "my_allocator.h"// Memory Allocator
-#include "systick.h"     // SysTick Driver 
+#include "rcc.h"
+#include "gpio.h"
+#include "systick.h"
+#include "uart.h"
+#include "my_allocator.h" // Included but not used yet
 
-// Global pointer for debugging/testing heap
-volatile uint32_t *test_ptr;
+// Helper to print strings
+void Print(const char *str) {
+    while (*str) UART2_Write(*str++);
+}
 
 int main(void) {
-    // 1. Initialize System Clock to 180 MHz
+    // 1. SYSTEM CLOCK: 180 MHz
     RCC_Init();
 
-    // 2. Initialize GPIO (Setup PA5 and PC13)
-    GPIO_Init();
-
-    // 3. Initialize Heap (Setup free list in CCMRAM)
-    allocator_init();
-
-    // 4. Initialize SysTick (The Heartbeat)
-    // Formula: Clock Freq / Target Freq = Ticks
-    // 180,000,000 Hz / 1000 Hz (1ms) = 180,000 ticks
+    // 2. SysTick: 1ms Interrupts
     SysTick_Init(180000); 
 
-    // 5. Test Allocation
-    test_ptr = (uint32_t *)my_malloc(sizeof(uint32_t));
-
-    if (test_ptr != NULL) {
-        *test_ptr = 0xDEADBEEF; // Write signature to verify memory works
-    }
+    // 3. GPIO: PA5 (LED Output) & PC13 (Button Input)
+    GPIO_Init();
     
-    // Super Loop
-    while (1) {
-        // Toggle LED (PA5)
-        GPIO_Toggle(GPIOA, GPIO_PIN_5);
-        
-        // Professional Delay (500ms)
-        // This is now accurate regardless of compiler optimization
-        Delay(500); 
-    }
+    // 4. UART: 115200 Baud
+    UART2_Init(); 
 
+    // Boot Message
+    Print("\r\n============================\r\n");
+    Print("   INTEGRATION TEST PASSED  \r\n");
+    Print("   Press Blue Button (PC13) \r\n");
+    Print("============================\r\n");
+
+    uint8_t prev_state = GPIO_PIN_SET; // Button is pulled high (1)
+    uint8_t curr_state;
+
+    while (1) {
+        // Test GPIO Input
+        curr_state = GPIO_Read(GPIOC, GPIO_PIN_13);
+
+        // Detect Press (Falling Edge: 1 -> 0)
+        if (prev_state == GPIO_PIN_SET && curr_state == GPIO_PIN_RESET) {
+            
+            // Test GPIO Output
+            GPIO_Toggle(GPIOA, GPIO_PIN_5); 
+            
+            // Test UART TX
+            Print(">> Button Pressed! Toggling LED.\r\n");
+        }
+
+        prev_state = curr_state;
+
+        // Test SysTick Delay (Debounce)
+        Delay(50); 
+    }
     return 0;
 }

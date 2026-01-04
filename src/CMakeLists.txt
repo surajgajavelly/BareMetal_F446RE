@@ -6,6 +6,7 @@ set(SOURCES
     gpio.c
     my_allocator.c
     systick.c
+    uart.c
 )
 
 # --- Create Executable ---
