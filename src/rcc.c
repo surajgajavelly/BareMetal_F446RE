@@ -1,4 +1,5 @@
 #include "rcc.h"
+#include "flash.h"
 
 void RCC_Init(void) {
     // 1. Enable HSE (High Speed External) Clock

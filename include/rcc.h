@@ -35,16 +35,6 @@ typedef struct {
     volatile uint32_t APB2ENR;   // 0x44
 } RCC_TypeDef;
 
-// FLASH (Flash Access Control)
-typedef struct {
-    volatile uint32_t ACR;       // 0x00
-    volatile uint32_t KEYR;      // 0x04
-    volatile uint32_t OPTKEYR;   // 0x08
-    volatile uint32_t SR;        // 0x0C
-    volatile uint32_t CR;        // 0x10
-    volatile uint32_t OPTCR;     // 0x14
-} FLASH_TypeDef;
-
 // PWR (Power Control)
 typedef struct {
     volatile uint32_t CR;        // 0x00
@@ -53,8 +43,9 @@ typedef struct {
 
 // --- 3. Hardware Pointers ---
 #define RCC   ((RCC_TypeDef *) RCC_BASE)
-#define FLASH ((FLASH_TypeDef *) FLASH_R_BASE)
 #define PWR   ((PWR_TypeDef *) PWR_BASE)
+
+// Note: FLASH pointer is now defined in flash.h to avoid conflicts
 
 // --- 4. Bit Definitions (The Knobs) ---
 
@@ -71,7 +62,7 @@ typedef struct {
 #define RCC_CFGR_SW_PLL     (2U << 0) // 10: PLL selected as system clock
 #define RCC_CFGR_SWS_PLL    (2U << 2) // 10: PLL used as system clock
 
-// FLASH_ACR
+// FLASH_ACR (Kept here for RCC_Init usage)
 #define FLASH_ACR_LATENCY_5WS (5U << 0) // 101: Five wait states
 #define FLASH_ACR_PRFTEN      (1U << 8)
 #define FLASH_ACR_ICEN        (1U << 9)

@@ -7,6 +7,7 @@ set(SOURCES
     my_allocator.c
     systick.c
     uart.c
+    flash.c
 )
 
 # --- Create Executable ---
