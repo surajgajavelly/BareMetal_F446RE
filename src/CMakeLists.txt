@@ -8,6 +8,7 @@ set(SOURCES
     systick.c
     uart.c
     flash.c
+    crc.c
 )
 
 # --- Create Executable ---

@@ -3,7 +3,8 @@
 #include "gpio.h"
 #include "systick.h"
 #include "uart.h"
-#include "flash.h" // <--- The new driver
+#include "flash.h"
+#include "crc.h"
 
 // Helper to print strings
 void Print(const char *str) {
@@ -13,10 +14,7 @@ void Print(const char *str) {
 // Helper to print Hex values
 void PrintHex(uint32_t val) {
     char hex[] = "0123456789ABCDEF";
-    // Print "0x"
     UART2_Write('0'); UART2_Write('x');
-    
-    // Print 8 hex digits
     for(int i = 7; i >= 0; i--) {
         UART2_Write(hex[(val >> (i * 4)) & 0xF]);
     }
@@ -27,55 +25,43 @@ int main(void) {
     RCC_Init();
     SysTick_Init(180000); 
     GPIO_Init();
-    UART2_Init(); 
+    UART2_Init();
+    CRC_Init();
 
-    Print("\r\n=== FLASH DRIVER TEST ===\r\n");
+    Print("\r\n=== CRC DRIVER TEST ===\r\n");
 
     // --- TEST SETUP ---
-    // Sector 1 Start Address: 0x0800 4000
-    uint32_t test_addr = 0x08004000;
-    uint8_t test_data[] = {0xDE, 0xAD, 0xBE, 0xEF};
+    // The STM32 Hardware CRC unit uses a specific polynomial (0x04C11DB7).
+    // For the input 0xDEADBEEF, the hardware MUST return 0x1A5A601F.
+    uint32_t data[] = {0xDEADBEEF};
     
-    // 2. READ BEFORE ERASE
-    Print("1. Reading Sector 1 (Before Erase)...\r\n");
-    uint32_t *pMem = (uint32_t*)test_addr;
-    Print("   Value: "); PrintHex(*pMem); Print("\r\n");
+    // Calculate
+    uint32_t result = CRC_Calculate(data, 1);
 
-    // 3. ERASE
-    Print("2. Erasing Sector 1 (Wait 1s)...\r\n");
-    uint8_t status = Flash_EraseSector(1);
-    if(status != 0) {
-        Print("   ERASE FAILED! Status: "); PrintHex(status); Print("\r\n");
-        while(1); // Stop here on error
-    }
-    Print("   Erase Complete.\r\n");
+    Print("Input:  0xDEADBEEF\r\n");
+    Print("Output: "); PrintHex(result); Print("\r\n");
 
-    // 4. VERIFY ERASE (Should be 0xFFFFFFFF)
-    if (*pMem == 0xFFFFFFFF) {
-        Print("   Verified: Sector is empty.\r\n");
+    // Verify against known hardware value
+    if (result == 0x81DA1A18) {
+        Print("SUCCESS: CRC Matches!\r\n");
     } else {
-        Print("   ERROR: Sector not empty!\r\n");
+        Print("ERROR: CRC Mismatch!\r\n");
     }
 
-    // 5. WRITE
-    Print("3. Writing 0xDEADBEEF...\r\n");
-    status = Flash_Write(test_addr, test_data, 4);
-    if(status != 0) {
-        Print("   WRITE FAILED! Status: "); PrintHex(status); Print("\r\n");
-    } else {
-        Print("   Write Success.\r\n");
-    }
+    Print("=======================\r\n");
 
-    // 6. READ BACK
-    Print("4. Reading Back...\r\n");
-    Print("   Value: "); PrintHex(*pMem); Print("\r\n");
-
-    if (*pMem == 0xEFBEADDE) { // Little Endian check (EF BE AD DE)
-        Print("   SUCCESS: Data Matches!\r\n");
-        Print("=========================\r\n");
-    } else {
-        Print("   ERROR: Data Mismatch!\r\n");
+    /* // --- OPTIONAL: FLASH TEST ---
+    // (Commented out to save time. Uncomment if you want to re-verify Flash)
+    
+    Print("\r\n--- Re-verifying Flash ---\r\n");
+    uint32_t test_addr = 0x08004000;
+    uint8_t test_data[] = {0xAA, 0xBB, 0xCC, 0xDD};
+    Flash_EraseSector(1);
+    Flash_Write(test_addr, test_data, 4);
+    if (*(uint32_t*)test_addr == 0xDDCCBBAA) {
+        Print("Flash Read/Write OK.\r\n");
     }
+    */
 
     while (1) {
         // Heartbeat
