@@ -1,4 +1,5 @@
 #include "uart.h"
+#include "systick.h"
 
 static void uart2_gpio_init(void) {
     RCC->AHB1ENR |= (1U << 0);
@@ -40,7 +41,15 @@ void UART2_Write(int ch) {
     USART2->DR = (uint8_t)ch;
 }
 
-int UART2_Read(void) {
-    while (!(USART2->SR & USART_SR_RXNE));
+int UART2_Read(uint32_t timeout) {
+    uint32_t start_tick = GetTick();
+
+    // Loop until RXNE flag is set
+    while (!(USART2->SR & USART_SR_RXNE)) {
+        // Check if time has passed
+        if ((GetTick() - start_tick) > timeout) {
+            return -1; // Timeout occurred!
+        }
+    }
     return (int)(USART2->DR & 0xFF);
 }

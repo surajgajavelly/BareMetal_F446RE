@@ -39,6 +39,6 @@ typedef struct {
 /* --- 5. Function Prototypes --- */
 void UART2_Init(void);
 void UART2_Write(int ch);
-int UART2_Read(void);
+int UART2_Read(uint32_t timeout);
 
 #endif // UART_H
