@@ -1,102 +1,140 @@
-/* Entry Point */
+/*
+ * @file      stm32f446re.ld
+ * @brief     Linker Script for STM32F446RE (Nucleo-64).
+ * @details   Describes the memory layout of the device and how sections
+ * (.text, .data, .bss) are mapped to Flash and RAM.
+ *
+ * **Memory Map Strategy:**
+ * - FLASH (512KB): Holds Code (.text) and Read-Only Data (.rodata).
+ * - RAM   (128KB): Holds Global Variables (.data, .bss) and Stack.
+ * - CCM   (64KB):  Holds the Heap (Custom Allocation) for high-speed access.
+ *
+ * @author    Gajavelly Sai Suraj
+ * @date      2026-01-10
+ * @copyright MIT License
+ */
+
+/* Entry Point: The first instruction to execute (defined in startup_stm32.c) */
 ENTRY(Reset_Handler)
 
 /* Highest address of the user mode stack */
-_estack = ORIGIN(RAM) + LENGTH(RAM);    /* end of RAM */
+/* Stack grows downwards from the end of RAM */
+_estack = ORIGIN(RAM) + LENGTH(RAM);
 
-/* Generate a link error if heap and stack don't fit into RAM */
-_Min_Heap_Size = 0x200;      /* required amount of heap  */
-_Min_Stack_Size = 0x400;     /* required amount of stack */
+/* Minimum size requirements for Heap and Stack checks */
+_Min_Heap_Size = 0x200;      /* 512 Bytes */
+_Min_Stack_Size = 0x400;     /* 1024 Bytes */
 
-/* Specify the memory areas */
+/* * 1. Physical Memory Definitions 
+ * Based on STM32F446RE Reference Manual
+ */
 MEMORY
 {
+    /* Flash: Non-volatile memory for code (RX = Read/Execute) */
     FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 512K
+    
+    /* SRAM1 + SRAM2: Main generic RAM (XRW = Execute/Read/Write) */
+    /* DMA *can* access this region. */
     RAM (xrw)       : ORIGIN = 0x20000000, LENGTH = 128K
-    /* NEW: CCM RAM region (64KB at 0x10000000) */
+    
+    /* CCM (Core Coupled Memory): High-speed RAM connected directly to CPU D-Bus. */
+    /* DMA *cannot* access this region. Perfect for Heap/Stack or math tables. */
     CCMRAM (xrw)    : ORIGIN = 0x10000000, LENGTH = 64K
 }
 
-/* Define output sections */
+/* * 2. Output Sections 
+ * Defines how input object files are mapped to memory regions.
+ */
 SECTIONS
 {
-  /* The startup code goes first into FLASH */
+  /* --- Section: Interrupt Vector Table --- */
+  /* Must be placed at the very start of Flash (0x08000000) */
   .isr_vector :
   {
     . = ALIGN(4);
-    KEEP(*(.isr_vector)) /* Startup code */
+    KEEP(*(.isr_vector)) /* Keep this section even if unused */
     . = ALIGN(4);
   } >FLASH
 
-  /* The program code and other data goes into FLASH */
+  /* --- Section: Program Code (.text) --- */
   .text :
   {
     . = ALIGN(4);
-    *(.text)           /* .text sections (code) */
-    *(.text*)          /* .text* sections (code) */
-    *(.glue_7)         /* glue arm to thumb code */
-    *(.glue_7t)        /* glue thumb to arm code */
+    *(.text)           /* Main code */
+    *(.text*)          /* Sub-sections of code */
+    *(.glue_7)         /* Glue ARM to Thumb code */
+    *(.glue_7t)        /* Glue Thumb to ARM code */
     *(.eh_frame)
 
     KEEP (*(.init))
     KEEP (*(.fini))
 
     . = ALIGN(4);
-    _etext = .;        /* define a global symbols at end of code */
+    _etext = .;        /* Global Symbol: End of Code */
   } >FLASH
 
-  /* Constant data goes into FLASH */
+  /* --- Section: Read-Only Data (.rodata) --- */
+  /* Constants, strings, const structs */
   .rodata :
   {
     . = ALIGN(4);
-    *(.rodata)         /* .rodata sections (constants, strings, etc.) */
-    *(.rodata*)        /* .rodata* sections (constants, strings, etc.) */
+    *(.rodata)
+    *(.rodata*)
     . = ALIGN(4);
   } >FLASH
 
-  /* Initialized data sections goes into RAM, load LMA copy after code */
-  _sidata = LOADADDR(.data);
+  /* --- Section: Initialized Data (.data) --- */
+  /* Critical: These variables have values (int x = 5). 
+   * They must be saved in FLASH (LMA) but accessed in RAM (VMA). 
+   * The 'AT> FLASH' command tells the linker to store the initialization values in Flash.
+   */
+  _sidata = LOADADDR(.data); /* Get load address in Flash */
 
   .data :
   {
     . = ALIGN(4);
-    _sdata = .;        /* create a global symbol at data start */
-    *(.data)           /* .data sections */
-    *(.data*)          /* .data* sections */
+    _sdata = .;        /* Global Symbol: Start of RAM Data */
+    *(.data)
+    *(.data*)
 
     . = ALIGN(4);
-    _edata = .;        /* define a global symbol at data end */
+    _edata = .;        /* Global Symbol: End of RAM Data */
   } >RAM AT> FLASH
 
-  /* Uninitialized data section */
+  /* --- Section: Uninitialized Data (.bss) --- */
+  /* Global variables without values (int y). 
+   * Startup code zeros this area.
+   */
   .bss :
   {
     . = ALIGN(4);
-    _sbss = .;         /* define a global symbol at bss start */
+    _sbss = .;         /* Global Symbol: Start of BSS */
     __bss_start__ = _sbss;
     *(.bss)
     *(.bss*)
     *(COMMON)
 
     . = ALIGN(4);
-    _ebss = .;         /* define a global symbol at bss end */
+    _ebss = .;         /* Global Symbol: End of BSS */
     __bss_end__ = _ebss;
   } >RAM
 
-  /* --- 2. NEW: Custom Heap Section --- */
-  /* This captures the __attribute__((section(".my_heap"))) tag */
-  /* NOLOAD means startup code won't zero it out (saves boot time) */
+  /* --- Section: Custom Heap (Mapped to CCM RAM) --- */
+  /* NOLOAD: Tells the startup code NOT to zero/init this section. 
+   * We manage this memory manually in 'my_allocator.c'.
+   */
   .my_heap (NOLOAD) :
   {
     . = ALIGN(8);
-    _sheap = .;
+    _sheap = .;        /* Global Symbol: Heap Start */
     *(.my_heap)        
     *(.my_heap*)
     . = ALIGN(8);
-    _eheap = .;
-  } >CCMRAM            /* <--- FORCE INTO CCM RAM */ 
+    _eheap = .;        /* Global Symbol: Heap End */
+  } >CCMRAM            /* <--- Forced into fast CCM RAM */
 
-  /* User_heap_stack section, used to check that there is enough RAM left */
+  /* --- Section: Stack Safety Check --- */
+  /* Ensures there is enough RAM left for the Stack after global variables */
   ._user_heap_stack :
   {
     . = ALIGN(8);

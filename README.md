@@ -1,6 +1,8 @@
-# BareMetal_F446RE: STM32F4 Driver Suite
+# BareMetal_F446RE: STM32F4 Driver Suite (v1.0.0)
 
 ![CI/CD Pipeline](assets/output.gif)
+
+**Version:** 1.0.0 (Stable)
 
 This is a complete **Bare-Metal Driver Suite** for the STM32F446RE microcontroller, written entirely from scratch in C.
 

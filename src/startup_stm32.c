@@ -1,29 +1,52 @@
+/**
+ * @file      startup_stm32.c
+ * @brief     STM32F446RE Startup Code (Reset Handler & Vector Table).
+ * @details   This file defines the Interrupt Vector Table and the Reset Handler.
+ * The Reset Handler is the first code to run on boot. It:
+ * 1. Copies the `.data` section from Flash to RAM.
+ * 2. Zero-initializes the `.bss` section in RAM.
+ * 3. Calls `main()`.
+ * @author    Gajavelly Sai Suraj
+ * @date      2026-01-10
+ * @copyright MIT License
+ */
+
 #include <stdint.h>
 
-/* Defines -------------------------------------------------------------------*/
-#define SRAM_START  0x20000000U
-#define SRAM_SIZE   (128U * 1024U) // 128KB
+/* --- Memory Definitions (From Datasheet) --- */
+#define SRAM_START  0x20000000U               /*!< Start address of SRAM1 */
+#define SRAM_SIZE   (128U * 1024U)            /*!< 128 KB SRAM size */
 #define SRAM_END    ((SRAM_START) + (SRAM_SIZE))
-#define STACK_START SRAM_END
+#define STACK_START SRAM_END                  /*!< Stack Pointer starts at the end of SRAM (grows down) */
 
-/* Externals -----------------------------------------------------------------*/
-extern uint32_t _etext;
-extern uint32_t _sdata;
-extern uint32_t _edata;
-extern uint32_t _sbss;
-extern uint32_t _ebss;
-extern uint32_t _sidata;
+/* --- Linker Script Symbols --- */
+/**
+ * @brief These symbols are defined in the Linker Script (stm32f446re.ld).
+ * They mark the boundaries of memory sections for copying data.
+ */
+extern uint32_t _etext;   /*!< End of code in Flash (Start of data to copy) */
+extern uint32_t _sdata;   /*!< Start of data section in RAM */
+extern uint32_t _edata;   /*!< End of data section in RAM */
+extern uint32_t _sbss;    /*!< Start of bss section in RAM */
+extern uint32_t _ebss;    /*!< End of bss section in RAM */
+extern uint32_t _sidata;  /*!< Load address of data section in Flash */
 
+/* --- External Function Prototypes --- */
 extern void main(void);
+extern void SysTick_Handler(void); /*!< SysTick Interrupt Handler (Implemented in systick.c) */
 
-/* --- FIX 1: Add External Declaration for SysTick --- */
-extern void SysTick_Handler(void);
-
-/* Function Prototypes -------------------------------------------------------*/
+/* --- Internal Function Prototypes --- */
 void Reset_Handler(void);
 void Default_Handler(void);
 
-/* Vector Table --------------------------------------------------------------*/
+/* --- Vector Table --- */
+/**
+ * @brief  STM32F4 Vector Table.
+ * @note   This array is placed at address 0x08000000 (Flash Start) by the linker.
+ * The CPU reads the first two entries on boot:
+ * 1. Initial Stack Pointer (MSP)
+ * 2. Reset Handler Address (PC)
+ */
 uint32_t vectors[] __attribute__((section(".isr_vector"))) = {
     STACK_START,                   /* 0x0000 0000 : Initial Stack Pointer */
     (uint32_t)Reset_Handler,       /* 0x0000 0004 : Reset Handler */
@@ -40,14 +63,21 @@ uint32_t vectors[] __attribute__((section(".isr_vector"))) = {
     (uint32_t)Default_Handler,     /* 0x0000 0030 : Debug Monitor Handler */
     0,                             /* 0x0000 0034 : Reserved */
     (uint32_t)Default_Handler,     /* 0x0000 0038 : PendSV Handler */
-    
-    /* --- FIX 2: Point to the Real Handler --- */
     (uint32_t)SysTick_Handler,     /* 0x0000 003C : SysTick Handler */
     
-    /* Add peripheral interrupts here (UART, DMA, etc.) later */
+    /* Peripheral Interrupts would follow here (UART, DMA, Timer, etc.) */
 };
 
-/* Functions -----------------------------------------------------------------*/
+/* --- Functions implementation --- */
+
+/**
+ * @brief  Reset Handler.
+ * @note   This is the entry point of the application.
+ * It performs the following C-Runtime (CRT) initialization:
+ * 1. Copies initialized data from Flash to RAM.
+ * 2. Zeros out uninitialized data (.bss) in RAM.
+ * 3. Jumps to main().
+ */
 void Reset_Handler(void) {
     /* 1. Copy .data section from FLASH to RAM */
     uint32_t size = (uint32_t)&_edata - (uint32_t)&_sdata;
@@ -70,6 +100,11 @@ void Reset_Handler(void) {
     main();
 }
 
+/**
+ * @brief  Default Interrupt Handler.
+ * @note   Any interrupt not explicitly handled will end up here.
+ * We enter an infinite loop to catch bugs during development.
+ */
 void Default_Handler(void) {
     while (1);
 }

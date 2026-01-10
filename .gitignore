@@ -17,5 +17,5 @@ build_target/
 
 # Documentation
 docs/html
-docs/latexbuild_docker/
+docs/latex
 build_docker/
